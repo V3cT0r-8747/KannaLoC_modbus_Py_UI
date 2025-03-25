@@ -1,6 +1,7 @@
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow, QLabel, QVBoxLayout, QWidget, QHBoxLayout
+from modbus_controller import ModbusController
 
 class UiMainwindow(object):
     def __init__(self):
@@ -12,6 +13,7 @@ class UiMainwindow(object):
         self.indicators = None
         self.checkboxes = None
         self.statusbar = None
+        self.modbus_controller = ModbusController()
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -77,8 +79,10 @@ class UiMainwindow(object):
             checkbox.setChecked(not all_checked)
 
     def checkbox_toggled(self, index, checkbox):
-        status = "on" if checkbox.isChecked() else "off"
+        status = checkbox.isChecked()
+        self.modbus_controller.write_coil("1",status)
         print(f"LED {index} was toggled {status}")
+
 
         if checkbox.isChecked():
             self.indicators[index].setStyleSheet(

@@ -3,7 +3,7 @@ from pymodbus.client import ModbusSerialClient
 
 
 class ModbusController:
-    def __init__(self, port = "COM4", baudrate=115200):
+    def __init__(self, port = "COM6", baudrate=115200):
         self.client = ModbusSerialClient(port = port, timeout=1, baudrate=baudrate, bytesize=8, stopbits=1, parity="N")
         self.client.connect()
 

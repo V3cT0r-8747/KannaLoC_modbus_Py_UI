@@ -7,6 +7,13 @@ from serial_functions import get_available_com_ports
 
 class UiMainwindow(object):
     def __init__(self):
+        self.connectionLayout = None
+        self.disconnectButton = None
+        self.connectButton = None
+        self.comPortDropdown = None
+        self.refreshButton = None
+        self.titleLabel = None
+        self.comPortLayout = None
         self.toggleAllButton = None
         self.mainLayout = None
         self.centralwidget = None
@@ -17,10 +24,10 @@ class UiMainwindow(object):
         self.statusbar = None
         self.modbus_controller = None
 
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(300, 200)
-        self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
+    def setupUi(self, mainwindow):
+        mainwindow.setObjectName("MainWindow")
+        mainwindow.resize(300, 200)
+        self.centralwidget = QtWidgets.QWidget(parent=mainwindow)
         self.centralwidget.setObjectName("centralwidget")
 
         self.mainLayout = QVBoxLayout(self.centralwidget)
@@ -36,7 +43,6 @@ class UiMainwindow(object):
         self.comPortLayout = QHBoxLayout()
         self.comPortDropdown = QComboBox(parent=self.centralwidget)
         self.comPortDropdown.setFixedSize(150, 25)
-        self.refresh_com_ports()
         self.comPortLayout.addWidget(self.comPortDropdown)
 
         self.refreshButton = QPushButton("Refresh", parent=self.centralwidget)
@@ -104,10 +110,10 @@ class UiMainwindow(object):
         self.toggleAllButton.clicked.connect(self.toggle_all)
         self.mainLayout.addWidget(self.toggleAllButton, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
+        mainwindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QtWidgets.QStatusBar(parent=mainwindow)
         self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
+        mainwindow.setStatusBar(self.statusbar)
 
     # Refresh list of valid COM ports
     def refresh_com_ports(self):
@@ -116,7 +122,8 @@ class UiMainwindow(object):
         if available_ports:
             self.comPortDropdown.addItems(available_ports)
         else:
-            self.comPortDropdown.addItem("No serial ports found")
+            self.comPortDropdown.addItem("Select COM Port:")
+            self.statusbar.showMessage("No COM ports available")
 
     # Initialise UART connection with selected COM port
     def init_modbus(self):
@@ -135,8 +142,6 @@ class UiMainwindow(object):
         else:
             self.statusbar.showMessage("No active connection")
 
-
-
     def toggle_all(self):
         if self.modbus_controller:
             all_checked = all(checkbox.isChecked() for checkbox in self.checkboxes)
@@ -144,7 +149,6 @@ class UiMainwindow(object):
                 checkbox.setChecked(not all_checked)
         else:
             self.statusbar.showMessage("Error: Connect to Kanna_LOC first")
-
 
     def checkbox_toggled(self, index, checkbox):
         if self.modbus_controller:
@@ -166,3 +170,4 @@ class MainApp(QMainWindow, UiMainwindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.refresh_com_ports()

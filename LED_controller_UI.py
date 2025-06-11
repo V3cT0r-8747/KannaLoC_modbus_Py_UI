@@ -73,10 +73,12 @@ class UiMainwindow(object):
         self.horizontalLayout.setSpacing(15)
         self.horizontalLayout.setObjectName("horizontalLayout")
 
-        self.checkboxes = []
-        self.indicators = []
+        self.checkboxes = [None] * 8
+        self.indicators = [None] * 8
 
-        for i in range(8):
+        for i in reversed(range(8)):
+            logical_index = 7 - i
+
             container = QWidget(parent=self.widget)
             layout = QVBoxLayout(container)
             layout.setContentsMargins(0, 0, 0, 0)
@@ -95,12 +97,12 @@ class UiMainwindow(object):
             checkbox.setChecked(False)
             checkbox.setObjectName(f"checkBox_{i}")
             checkbox.setText(f"D{i}")
-            checkbox.stateChanged.connect(lambda state, x=i, cb=checkbox: self.checkbox_toggled(x, cb))
+            checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_toggle(i, cb))
             layout.addWidget(checkbox, alignment=Qt.AlignmentFlag.AlignCenter)
 
             self.horizontalLayout.addWidget(container)
-            self.checkboxes.append(checkbox)
-            self.indicators.append(indicator)
+            self.checkboxes[logical_index] = checkbox
+            self.indicators[logical_index] = indicator
 
         self.mainLayout.addWidget(self.widget)
 
@@ -143,27 +145,49 @@ class UiMainwindow(object):
             self.statusbar.showMessage("No active connection")
 
     def toggle_all(self):
-        if self.modbus_controller:
-            all_checked = all(checkbox.isChecked() for checkbox in self.checkboxes)
-            for checkbox in self.checkboxes:
-                checkbox.setChecked(not all_checked)
-        else:
+        if not self.modbus_controller:
             self.statusbar.showMessage("Error: Connect to Kanna_LOC first")
+            return
 
-    def checkbox_toggled(self, index, checkbox):
-        if self.modbus_controller:
-            status = checkbox.isChecked()
-            self.modbus_controller.write_coil("1", status)
-            print(f"LED {index} was toggled {status}")
+        # Check if all are currently ON
+        all_checked = all(cb.isChecked() for cb in self.checkboxes)
+        new_state = not all_checked
 
-            if status:
-                self.indicators[index].setStyleSheet(
+        for i, cb in enumerate(self.checkboxes):
+            cb.blockSignals(True)
+            cb.setChecked(new_state)
+            cb.blockSignals(False)
+
+            color = "green" if new_state else "grey"
+            self.indicators[i].setStyleSheet(
+                f"background-color: {color}; border: 1px solid black; border-radius: 10px;")
+
+        # if ON, value = 0xFF, if toggle off then value = 0x00
+        value = 0xFF if new_state else 0x00
+        self.modbus_controller.write_register(value)
+
+
+    def checkbox_toggle(self, index, checkbox):
+        if not self.modbus_controller:
+            self.statusbar.showMessage("Error: Connect to Kanna_LOC first")
+            return
+
+        value = 0
+        for i, cb in enumerate(self.checkboxes):
+            if cb.isChecked():
+                value |= (1 << (7 - i))
+
+        # Update indicators
+        for i, cb in enumerate(self.checkboxes):
+            if cb.isChecked():
+                self.indicators[i].setStyleSheet(
                     "background-color: green; border: 1px solid black; border-radius: 10px;")
             else:
-                self.indicators[index].setStyleSheet(
+                self.indicators[i].setStyleSheet(
                     "background-color: grey; border: 1px solid black; border-radius: 10px;")
-        else:
-            self.statusbar.showMessage("Error: Connect to Kanna_LOC first")
+
+        self.modbus_controller.write_register(value)
+
 
 
 class MainApp(QMainWindow, UiMainwindow):
